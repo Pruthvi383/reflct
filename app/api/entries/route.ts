@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { entryDraftSchema, entrySubmitSchema } from "@/lib/validators";
+import type { Database, Entry, Profile } from "@/types/database";
 
 export async function GET() {
   const supabase = await createClient();
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message, fields: fieldErrors }, { status: 422 });
   }
 
-  const payload = {
+  const payload: Database["public"]["Tables"]["entries"]["Insert"] = {
     ...parsed.data,
     user_id: user.id,
     learnings: parsed.data.learnings.trim(),
@@ -58,16 +59,18 @@ export async function POST(request: Request) {
     blocker: parsed.data.blocker?.trim() || null
   };
 
-  const { data: existingEntry } = await supabase
+  const existingEntryResult = await supabase
     .from("entries")
     .select("*")
     .eq("user_id", user.id)
     .eq("week_start", payload.week_start)
     .maybeSingle();
 
+  const existingEntry = (existingEntryResult.data ?? null) as Entry | null;
+
   const { data, error } = await supabase
     .from("entries")
-    .upsert(payload, { onConflict: "user_id,week_start" })
+    .upsert(payload as never, { onConflict: "user_id,week_start" })
     .select("*")
     .single();
 
@@ -76,11 +79,13 @@ export async function POST(request: Request) {
   }
 
   if (payload.is_locked && !existingEntry?.is_locked) {
-    const { data: profile } = await supabase
+    const profileResult = await supabase
       .from("profiles")
       .select("streak_count, longest_streak")
       .eq("id", user.id)
       .single();
+
+    const profile = (profileResult.data ?? null) as Pick<Profile, "streak_count" | "longest_streak"> | null;
 
     const nextStreak = (profile?.streak_count ?? 0) + 1;
     await supabase
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
         streak_count: nextStreak,
         longest_streak: Math.max(profile?.longest_streak ?? 0, nextStreak),
         last_entry_date: new Date().toISOString()
-      })
+      } as never)
       .eq("id", user.id);
   }
 

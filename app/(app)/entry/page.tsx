@@ -4,13 +4,14 @@ import { EntryWorkspace } from "@/components/entry/entry-workspace";
 import { Card } from "@/components/ui/card";
 import { getCurrentWeekStart, getEntryCountdownCopy, getWeekWindow, isEntryWindowOpen } from "@/lib/date";
 import { requireCompletedProfile } from "@/lib/auth";
+import type { Entry as EntryRow, FocusSession as FocusSessionRow } from "@/types/database";
 
 export default async function EntryPage() {
   const { supabase, profile } = await requireCompletedProfile();
   const weekStart = formatISO(getCurrentWeekStart(), { representation: "date" });
   const weekWindow = getWeekWindow();
 
-  const [{ data: currentEntry }, { data: previousEntries }, { data: sessions }] = await Promise.all([
+  const [currentEntryResult, previousEntriesResult, sessionsResult] = await Promise.all([
     supabase.from("entries").select("*").eq("user_id", profile.id).eq("week_start", weekStart).maybeSingle(),
     supabase.from("entries").select("*").eq("user_id", profile.id).order("week_start", { ascending: false }).limit(2),
     supabase
@@ -22,8 +23,13 @@ export default async function EntryPage() {
       .order("started_at", { ascending: false })
   ]);
 
-  const hasHistory = (previousEntries?.length ?? 0) > 0;
-  const allowAnytimeEntry = !hasHistory || Boolean(currentEntry && !currentEntry.is_locked);
+  const currentEntry = (currentEntryResult.data ?? null) as EntryRow | null;
+  const previousEntries = (previousEntriesResult.data ?? []) as EntryRow[];
+  const sessions = (sessionsResult.data ?? []) as FocusSessionRow[];
+
+  const hasHistory = previousEntries.length > 0;
+  const hasOpenDraft = currentEntry?.is_locked === false;
+  const allowAnytimeEntry = !hasHistory || hasOpenDraft;
 
   if (!isEntryWindowOpen() && !allowAnytimeEntry) {
     return (
@@ -36,9 +42,9 @@ export default async function EntryPage() {
 
   return (
     <EntryWorkspace
-      currentEntry={currentEntry ?? null}
-      previousEntry={previousEntries?.find((entry) => entry.week_start !== weekStart) ?? null}
-      sessions={sessions ?? []}
+      currentEntry={currentEntry}
+      previousEntry={previousEntries.find((entry) => entry.week_start !== weekStart) ?? null}
+      sessions={sessions}
       weekStart={weekStart}
     />
   );

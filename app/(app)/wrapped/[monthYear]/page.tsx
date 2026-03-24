@@ -5,6 +5,7 @@ import { WrappedDetail } from "@/components/wrapped/wrapped-detail";
 import { getSession } from "@/lib/auth";
 import { absoluteUrl } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
+import type { Wrapped } from "@/types/database";
 
 function parseMonthYear(slug: string) {
   const [year, month] = slug.split("-");
@@ -56,14 +57,17 @@ export default async function WrappedDetailPage({
   const { user, supabase } = await getSession();
 
   if (user) {
-    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
-    const { data: wrapped } = await supabase
+    const profileResult = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    const wrappedResult = await supabase
       .from("wrapped")
       .select("*")
       .eq("user_id", user.id)
       .eq("year", parsed.year)
       .eq("month", parsed.month)
       .single();
+
+    const profile = (profileResult.data ?? null) as { username: string } | null;
+    const wrapped = (wrappedResult.data ?? null) as Wrapped | null;
 
     if (!wrapped) notFound();
 
@@ -75,15 +79,17 @@ export default async function WrappedDetailPage({
   }
 
   const publicSupabase = await createClient();
-  const { data: profile } = await publicSupabase
+  const profileResult = await publicSupabase
     .from("profiles")
     .select("id, username")
     .eq("username", resolvedSearchParams.user)
     .single();
 
+  const profile = (profileResult.data ?? null) as { id: string; username: string } | null;
+
   if (!profile) notFound();
 
-  const { data: wrapped } = await publicSupabase
+  const wrappedResult = await publicSupabase
     .from("wrapped")
     .select("*")
     .eq("user_id", profile.id)
@@ -91,6 +97,8 @@ export default async function WrappedDetailPage({
     .eq("month", parsed.month)
     .eq("is_public", true)
     .single();
+
+  const wrapped = (wrappedResult.data ?? null) as Wrapped | null;
 
   if (!wrapped) notFound();
 

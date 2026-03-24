@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { sendMonthlyWrappedReadyEmail } from "@/lib/email";
 import { generateWrappedSummary } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -78,18 +79,16 @@ Return this exact JSON structure:
 
   try {
     const summary = await generateWrappedSummary(prompt);
+    const payload: Database["public"]["Tables"]["wrapped"]["Insert"] = {
+      user_id: user.id,
+      month,
+      year,
+      summary
+    };
 
     const { data, error } = await supabase
       .from("wrapped")
-      .upsert(
-        {
-          user_id: user.id,
-          month,
-          year,
-          summary
-        },
-        { onConflict: "user_id,month,year" }
-      )
+      .upsert(payload as never, { onConflict: "user_id,month,year" })
       .select("*")
       .single();
 

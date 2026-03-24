@@ -5,6 +5,7 @@ import { PublicProfile } from "@/components/profile/public-profile";
 import type { PublicProfilePayload } from "@/types/app";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { Profile, Wrapped } from "@/types/database";
 
 export default async function PublicProfilePage({
   params
@@ -15,15 +16,17 @@ export default async function PublicProfilePage({
   const { username } = await params;
   const { user } = await getSession();
 
-  const { data: profile } = await supabase
+  const profileResult = await supabase
     .from("profiles")
     .select("id, name, username, image, streak_count, longest_streak, learning_goal, created_at, is_public")
     .eq("username", username)
     .single();
 
+  const profile = (profileResult.data ?? null) as PublicProfilePayload["profile"] | null;
+
   if (!profile) notFound();
 
-  const [{ data: wrapped }, { count }] = await Promise.all([
+  const [wrappedResult, entriesCountResult] = await Promise.all([
     supabase
       .from("wrapped")
       .select("*")
@@ -34,17 +37,21 @@ export default async function PublicProfilePage({
     supabase.from("entries").select("*", { count: "exact", head: true }).eq("user_id", profile.id)
   ]);
 
+  const wrapped = (wrappedResult.data ?? []) as Wrapped[];
+  const count = entriesCountResult.count ?? 0;
+
   const payload: PublicProfilePayload = {
     profile,
-    wrapped: wrapped ?? [],
-    totalWeeks: count ?? 0,
-    totalWrapped: wrapped?.length ?? 0
+    wrapped,
+    totalWeeks: count,
+    totalWrapped: wrapped.length
   };
 
   const isOwner = user?.id === profile.id;
 
   if (isOwner) {
-    const { data: currentProfile } = await supabase.from("profiles").select("*").eq("id", profile.id).single();
+    const currentProfileResult = await supabase.from("profiles").select("*").eq("id", profile.id).single();
+    const currentProfile = (currentProfileResult.data ?? null) as Profile | null;
 
     if (currentProfile) {
       return (

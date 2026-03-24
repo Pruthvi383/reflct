@@ -62,7 +62,7 @@ export async function ensureMonthlyFreezeReset(
 
   const { data } = await supabase
     .from("profiles")
-    .update({ streak_freezes: 1 })
+    .update({ streak_freezes: 1 } as never)
     .eq("id", profile.id)
     .select("*")
     .single();
@@ -90,7 +90,7 @@ export async function applyDashboardStreakGuard(
 
   const { data } = await supabase
     .from("profiles")
-    .update(nextValues satisfies Database["public"]["Tables"]["profiles"]["Update"])
+    .update((nextValues satisfies Database["public"]["Tables"]["profiles"]["Update"]) as never)
     .eq("id", profile.id)
     .select("*")
     .single();

@@ -13,6 +13,8 @@
   --accent-foreground: 240 12% 8%;
   --success: 144 22% 56%;
   --warning: 42 52% 54%;
+  --font-geist: "Geist", "SF Pro Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-lora: "Lora", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   color-scheme: dark;
 }
 
@@ -40,6 +42,7 @@ html {
 
 body {
   @apply min-h-screen bg-background text-foreground antialiased;
+  font-family: var(--font-geist);
   background-image:
     radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 32%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%);

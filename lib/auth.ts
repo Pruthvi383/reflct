@@ -41,7 +41,7 @@ async function ensureProfile(user: User): Promise<{
 
   const { data: insertedProfile, error } = await admin
     .from("profiles")
-    .upsert(seed, { onConflict: "id" })
+    .upsert(seed as never, { onConflict: "id" })
     .select("*")
     .single();
 

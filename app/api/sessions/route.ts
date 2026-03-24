@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { focusSessionSchema } from "@/lib/validators";
+import type { Database } from "@/types/database";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -20,9 +21,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
+  const payload: Database["public"]["Tables"]["focus_sessions"]["Insert"] = {
+    ...parsed.data,
+    user_id: user.id
+  };
+
   const { data, error } = await supabase
     .from("focus_sessions")
-    .insert({ ...parsed.data, user_id: user.id })
+    .insert(payload as never)
     .select("*")
     .single();
 

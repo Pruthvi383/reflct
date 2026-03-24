@@ -44,7 +44,7 @@ export async function PATCH(request: Request) {
 
   const { data, error } = await supabase
     .from("wrapped")
-    .update({ is_public: body.is_public })
+    .update({ is_public: body.is_public } as never)
     .eq("id", body.id)
     .eq("user_id", user.id)
     .select("*")

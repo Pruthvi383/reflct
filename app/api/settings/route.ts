@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { settingsSchema } from "@/lib/validators";
+import type { Database } from "@/types/database";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -34,9 +35,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
+  const payload = parsed.data as Database["public"]["Tables"]["profiles"]["Update"];
+
   const { data, error } = await supabase
     .from("profiles")
-    .update(parsed.data)
+    .update(payload as never)
     .eq("id", user.id)
     .select("*")
     .single();
