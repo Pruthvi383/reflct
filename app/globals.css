@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 42 33% 96%;
+  --foreground: 228 18% 12%;
+  --muted: 38 20% 90%;
+  --muted-foreground: 228 10% 40%;
+  --card: 42 29% 98%;
+  --card-foreground: 228 18% 12%;
+  --accent: 42 52% 54%;
+  --accent-foreground: 240 12% 8%;
+  --success: 144 22% 56%;
+  --warning: 42 52% 54%;
+  color-scheme: dark;
+}
+
+.dark {
+  --background: 240 18% 5%;
+  --foreground: 60 13% 96%;
+  --muted: 232 20% 13%;
+  --muted-foreground: 38 12% 70%;
+  --card: 232 22% 11%;
+  --card-foreground: 60 13% 96%;
+  --accent: 42 52% 54%;
+  --accent-foreground: 240 12% 8%;
+  --success: 144 22% 56%;
+  --warning: 42 52% 54%;
+  color-scheme: dark;
+}
+
+* {
+  @apply border-transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply min-h-screen bg-background text-foreground antialiased;
+  background-image:
+    radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%);
+}
+
+::selection {
+  background: rgba(201, 168, 76, 0.22);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
+  }
+
+  button,
+  [role="button"] {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-white/5 bg-white/5 shadow-soft backdrop-blur-xl;
+  }
+
+  .glass-light {
+    @apply border border-black/5 bg-white/70 shadow-soft backdrop-blur-xl;
+  }
+
+  .surface {
+    @apply rounded-3xl bg-card/80 shadow-soft backdrop-blur-xl;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .mask-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.14) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  .serif {
+    font-family: var(--font-lora), serif;
+  }
+}
