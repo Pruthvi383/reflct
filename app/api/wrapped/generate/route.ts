@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sendMonthlyWrappedReadyEmail } from "@/lib/email";
 import { generateWrappedSummary } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
+import type { Database, Entry, FocusSession } from "@/types/database";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  const [{ data: entries }, { data: sessions }] = await Promise.all([
+  const [entriesResult, sessionsResult] = await Promise.all([
     supabase
       .from("entries")
       .select("*")
@@ -38,7 +38,10 @@ export async function POST(request: Request) {
       .lte("started_at", monthEnd.toISOString())
   ]);
 
-  const entriesText = (entries ?? [])
+  const entries = (entriesResult.data ?? []) as Entry[];
+  const sessions = (sessionsResult.data ?? []) as FocusSession[];
+
+  const entriesText = entries
     .map(
       (entry) =>
         `Week ${entry.week_start}\nLearnings: ${entry.learnings}\nBlocker: ${entry.blocker ?? "None"}\nNext goal: ${entry.next_goal ?? "None"}`
@@ -47,9 +50,9 @@ export async function POST(request: Request) {
 
   const sessionStats = JSON.stringify(
     {
-      totalSessions: sessions?.length ?? 0,
-      productiveSessions: sessions?.filter((session) => session.quality === "PRODUCTIVE").length ?? 0,
-      totalMinutes: sessions?.reduce((sum, session) => sum + session.duration, 0) ?? 0
+      totalSessions: sessions.length,
+      productiveSessions: sessions.filter((session) => session.quality === "PRODUCTIVE").length,
+      totalMinutes: sessions.reduce((sum, session) => sum + session.duration, 0)
     },
     null,
     2

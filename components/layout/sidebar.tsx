@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, PanelLeftClose, PanelLeftOpen, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
@@ -14,7 +15,11 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/use-ui-store";
 import type { Profile } from "@/types/database";
 
-type NavItem = (typeof SIDEBAR_ITEMS)[number] & { href: string };
+type NavItem = {
+  href: string;
+  label: (typeof SIDEBAR_ITEMS)[number]["label"];
+  icon: (typeof SIDEBAR_ITEMS)[number]["icon"];
+};
 
 function useNavItems(profile: Profile) {
   return useMemo<NavItem[]>(
@@ -117,7 +122,7 @@ function DesktopSidebar({ profile }: { profile: Profile }) {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href as Route}
                   className={cn(
                     "flex items-center rounded-2xl py-3 text-sm transition",
                     sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3",
@@ -213,7 +218,7 @@ function MobileHeader({ profile }: { profile: Profile }) {
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={item.href as Route}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition",
                         active
@@ -268,7 +273,7 @@ export function MobileNav({ profile }: { profile: Profile }) {
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href as Route}
             className={cn(
               "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] sm:text-xs",
               active ? "bg-white/10 text-foreground" : "text-muted-foreground"

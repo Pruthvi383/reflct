@@ -2,7 +2,7 @@ import { formatISO } from "date-fns";
 
 import { getCurrentWeekStart, getWeekWindow, hasMissedLastWeek } from "@/lib/date";
 import type { DashboardSnapshot, EntryStatus } from "@/types/app";
-import type { Profile } from "@/types/database";
+import type { Entry, FocusSession, Profile } from "@/types/database";
 import type { Database } from "@/types/database";
 
 type SupabaseClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
@@ -14,7 +14,7 @@ export async function getDashboardSnapshot(
   const weekStart = formatISO(getCurrentWeekStart(), { representation: "date" });
   const weekWindow = getWeekWindow();
 
-  const [{ data: currentEntry }, { data: recentEntries }, { data: currentWeekSessions }] = await Promise.all([
+  const [currentEntryResult, recentEntriesResult, currentWeekSessionsResult] = await Promise.all([
     supabase
       .from("entries")
       .select("*")
@@ -36,16 +36,20 @@ export async function getDashboardSnapshot(
       .order("started_at", { ascending: false })
   ]);
 
-  const lastGoal = recentEntries?.[0]?.next_goal ?? null;
-  const hasHistory = (recentEntries?.length ?? 0) > 0;
+  const currentEntry = (currentEntryResult.data ?? null) as Entry | null;
+  const recentEntries = (recentEntriesResult.data ?? []) as Entry[];
+  const currentWeekSessions = (currentWeekSessionsResult.data ?? []) as FocusSession[];
+
+  const lastGoal = recentEntries[0]?.next_goal ?? null;
+  const hasHistory = recentEntries.length > 0;
   const missed = hasHistory ? hasMissedLastWeek(profile.last_entry_date) : false;
   const entryStatus: EntryStatus = currentEntry?.is_locked ? "DONE" : missed ? "MISSED" : "PENDING";
 
   return {
     profile,
-    currentEntry: currentEntry ?? null,
-    recentEntries: recentEntries ?? [],
-    currentWeekSessions: currentWeekSessions ?? [],
+    currentEntry,
+    recentEntries,
+    currentWeekSessions,
     lastGoal,
     entryStatus
   };
