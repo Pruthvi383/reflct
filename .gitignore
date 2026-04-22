@@ -7,3 +7,5 @@ coverage
 .tools
 .DS_Store
 tsconfig.tsbuildinfo
+.vercel
+.env*.local

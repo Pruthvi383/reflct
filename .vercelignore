@@ -1,0 +1,10 @@
+.git
+.DS_Store
+.env.local
+.next
+.next.backup-next15
+.tools
+coverage
+dist
+node_modules
+tsconfig.tsbuildinfo
