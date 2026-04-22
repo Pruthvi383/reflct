@@ -8,22 +8,32 @@ import type { AppUser, Charity, Subscription, UserCharity } from "@/types/app";
 
 export default async function AdminUsersPage() {
   await requireAdmin();
-  const admin = createAdminClient();
-  const [{ data: users }, { data: subscriptions }, { data: selections }, { data: charities }] = await Promise.all([
-    admin.from("users").select("*").order("created_at", { ascending: false }),
-    admin.from("subscriptions").select("*"),
-    admin.from("user_charity").select("*, charity:charities(name)"),
-    admin.from("charities").select("id, name").order("name")
-  ]);
-  const userRows = ((users as AppUser[] | null) ?? []);
-  const subscriptionMap = new Map((((subscriptions as Subscription[] | null) ?? [])).map((item) => [item.user_id, item]));
-  const selectionMap = new Map(
-    ((((selections as Array<UserCharity & { charity: Pick<Charity, "name"> | null }> | null) ?? [])).map((item) => [
-      item.user_id,
-      item
-    ]))
-  );
-  const charityOptions = ((charities as Pick<Charity, "id" | "name">[] | null) ?? []);
+  let userRows: AppUser[] = [];
+  let subscriptionMap = new Map<string, Subscription>();
+  let selectionMap = new Map<string, UserCharity & { charity: Pick<Charity, "name"> | null }>();
+  let charityOptions: Pick<Charity, "id" | "name">[] = [];
+  let dataUnavailable = false;
+
+  try {
+    const admin = createAdminClient();
+    const [{ data: users }, { data: subscriptions }, { data: selections }, { data: charities }] = await Promise.all([
+      admin.from("users").select("*").order("created_at", { ascending: false }),
+      admin.from("subscriptions").select("*"),
+      admin.from("user_charity").select("*, charity:charities(name)"),
+      admin.from("charities").select("id, name").order("name")
+    ]);
+    userRows = ((users as AppUser[] | null) ?? []);
+    subscriptionMap = new Map((((subscriptions as Subscription[] | null) ?? [])).map((item) => [item.user_id, item]));
+    selectionMap = new Map(
+      ((((selections as Array<UserCharity & { charity: Pick<Charity, "name"> | null }> | null) ?? [])).map((item) => [
+        item.user_id,
+        item
+      ]))
+    );
+    charityOptions = ((charities as Pick<Charity, "id" | "name">[] | null) ?? []);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <div className="space-y-6">
@@ -31,6 +41,12 @@ export default async function AdminUsersPage() {
         <p className="eyebrow">User management</p>
         <h1 className="serif mt-3 text-4xl">Update subscriber roles, charity settings, and billing state.</h1>
       </div>
+
+      {dataUnavailable ? (
+        <Card className="rounded-[24px] border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm text-amber-900">User records are unavailable until the Supabase connection is restored.</p>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4">
         {userRows.map((user) => {

@@ -8,12 +8,19 @@ import type { AppUser, Draw, Winner } from "@/types/app";
 
 export default async function AdminWinnersPage() {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { data: winners } = await admin
-    .from("winners")
-    .select("*, users(email), draws(draw_month)")
-    .order("created_at", { ascending: false });
-  const winnerRows = ((winners as Array<Winner & { users: Pick<AppUser, "email"> | null; draws: Pick<Draw, "draw_month"> | null }> | null) ?? []);
+  let winnerRows: Array<Winner & { users: Pick<AppUser, "email"> | null; draws: Pick<Draw, "draw_month"> | null }> = [];
+  let dataUnavailable = false;
+
+  try {
+    const admin = createAdminClient();
+    const { data: winners } = await admin
+      .from("winners")
+      .select("*, users(email), draws(draw_month)")
+      .order("created_at", { ascending: false });
+    winnerRows = ((winners as Array<Winner & { users: Pick<AppUser, "email"> | null; draws: Pick<Draw, "draw_month"> | null }> | null) ?? []);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <div className="space-y-6">
@@ -21,6 +28,12 @@ export default async function AdminWinnersPage() {
         <p className="eyebrow">Winner verification</p>
         <h1 className="serif mt-3 text-4xl">Approve proof, reject unsupported claims, and mark payouts as paid.</h1>
       </div>
+
+      {dataUnavailable ? (
+        <Card className="rounded-[24px] border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm text-amber-900">Winner data is unavailable right now, so this page is running in fallback mode.</p>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4">
         {winnerRows.map((winner) => (

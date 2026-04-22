@@ -9,14 +9,22 @@ import type { AppUser, Draw, Winner } from "@/types/app";
 
 export default async function AdminOverviewPage() {
   await requireAdmin();
-  const admin = createAdminClient();
-  const [snapshot, { data: recentDraws }, { data: recentWinners }] = await Promise.all([
-    getAdminSnapshot(),
-    admin.from("draws").select("*").order("draw_month", { ascending: false }).limit(4),
-    admin.from("winners").select("*, users(email)").order("created_at", { ascending: false }).limit(5)
-  ]);
-  const drawRows = ((recentDraws as Draw[] | null) ?? []);
-  const winnerRows = ((recentWinners as Array<Winner & { users: Pick<AppUser, "email"> | null }> | null) ?? []);
+  const snapshot = await getAdminSnapshot();
+  let drawRows: Draw[] = [];
+  let winnerRows: Array<Winner & { users: Pick<AppUser, "email"> | null }> = [];
+  let dataUnavailable = false;
+
+  try {
+    const admin = createAdminClient();
+    const [{ data: recentDraws }, { data: recentWinners }] = await Promise.all([
+      admin.from("draws").select("*").order("draw_month", { ascending: false }).limit(4),
+      admin.from("winners").select("*, users(email)").order("created_at", { ascending: false }).limit(5)
+    ]);
+    drawRows = ((recentDraws as Draw[] | null) ?? []);
+    winnerRows = ((recentWinners as Array<Winner & { users: Pick<AppUser, "email"> | null }> | null) ?? []);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <div className="space-y-6">
@@ -24,6 +32,14 @@ export default async function AdminOverviewPage() {
         <p className="eyebrow">Admin overview</p>
         <h1 className="serif mt-3 text-4xl">Platform health, prize exposure, and pending verification at a glance.</h1>
       </div>
+
+      {dataUnavailable ? (
+        <Card className="rounded-[24px] border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm text-amber-900">
+            Live database data is temporarily unavailable. Your emergency admin login is active, but dashboard metrics are in fallback mode.
+          </p>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="rounded-[28px] p-5">

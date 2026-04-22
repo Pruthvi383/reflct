@@ -9,9 +9,20 @@ import type { Charity } from "@/types/app";
 
 export default async function AdminCharitiesPage() {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { data: charities } = await admin.from("charities").select("*").order("featured", { ascending: false }).order("name");
-  const charityRows = ((charities as Charity[] | null) ?? []);
+  let charityRows: Charity[] = [];
+  let dataUnavailable = false;
+
+  try {
+    const admin = createAdminClient();
+    const { data: charities } = await admin
+      .from("charities")
+      .select("*")
+      .order("featured", { ascending: false })
+      .order("name");
+    charityRows = ((charities as Charity[] | null) ?? []);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <div className="space-y-6">
@@ -19,6 +30,12 @@ export default async function AdminCharitiesPage() {
         <p className="eyebrow">Charity management</p>
         <h1 className="serif mt-3 text-4xl">Add partners, update profiles, and control homepage spotlighting.</h1>
       </div>
+
+      {dataUnavailable ? (
+        <Card className="rounded-[24px] border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm text-amber-900">Charity data is unavailable right now, so management actions are in fallback mode.</p>
+        </Card>
+      ) : null}
 
       <Card className="rounded-[30px] p-6">
         <h2 className="text-xl font-semibold">Add new charity</h2>

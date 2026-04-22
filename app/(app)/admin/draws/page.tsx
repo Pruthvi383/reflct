@@ -10,12 +10,19 @@ import type { Draw, DrawResult } from "@/types/app";
 
 export default async function AdminDrawsPage() {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { data: draws } = await admin
-    .from("draws")
-    .select("*, draw_results(*)")
-    .order("draw_month", { ascending: false });
-  const drawRows = ((draws as Array<Draw & { draw_results: DrawResult[] | null }> | null) ?? []);
+  let drawRows: Array<Draw & { draw_results: DrawResult[] | null }> = [];
+  let dataUnavailable = false;
+
+  try {
+    const admin = createAdminClient();
+    const { data: draws } = await admin
+      .from("draws")
+      .select("*, draw_results(*)")
+      .order("draw_month", { ascending: false });
+    drawRows = ((draws as Array<Draw & { draw_results: DrawResult[] | null }> | null) ?? []);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <div className="space-y-6">
@@ -23,6 +30,12 @@ export default async function AdminDrawsPage() {
         <p className="eyebrow">Draw management</p>
         <h1 className="serif mt-3 text-4xl">Simulate, inspect, and publish monthly draw results.</h1>
       </div>
+
+      {dataUnavailable ? (
+        <Card className="rounded-[24px] border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm text-amber-900">Draw data is unavailable until the live database connection is restored.</p>
+        </Card>
+      ) : null}
 
       <Card className="rounded-[30px] p-6">
         <h2 className="text-xl font-semibold">Run simulation</h2>

@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 
+import {
+  buildEmergencyAdminSession,
+  EMERGENCY_ADMIN_COOKIE,
+  resolveEmergencyAdminEmailFromCookie
+} from "@/lib/emergency-admin";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { PLAN_CONFIG } from "@/lib/constants";
 import type { AppUser, Subscription, SubscriptionStatus } from "@/types/app";
@@ -39,13 +45,63 @@ async function ensureAppUser(user: User): Promise<AppUser> {
   return data as AppUser;
 }
 
-export async function getSessionContext() {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+async function getEmergencyAdminSession() {
+  const cookieStore = await cookies();
+  const email = resolveEmergencyAdminEmailFromCookie(cookieStore.get(EMERGENCY_ADMIN_COOKIE)?.value);
 
-  if (!user) {
+  return email ? buildEmergencyAdminSession(email) : null;
+}
+
+export async function getSessionContext() {
+  const emergencyAdmin = await getEmergencyAdminSession();
+  const supabase = await createClient();
+
+  try {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      if (emergencyAdmin) {
+        return {
+          supabase,
+          authUser: emergencyAdmin.authUser,
+          appUser: emergencyAdmin.appUser,
+          subscription: null as Subscription | null
+        };
+      }
+
+      return {
+        supabase,
+        authUser: null,
+        appUser: null,
+        subscription: null as Subscription | null
+      };
+    }
+
+    const appUser = await ensureAppUser(user);
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    return {
+      supabase,
+      authUser: user,
+      appUser,
+      subscription: (subscription as Subscription | null) ?? null
+    };
+  } catch {
+    if (emergencyAdmin) {
+      return {
+        supabase,
+        authUser: emergencyAdmin.authUser,
+        appUser: emergencyAdmin.appUser,
+        subscription: null as Subscription | null
+      };
+    }
+
     return {
       supabase,
       authUser: null,
@@ -53,20 +109,6 @@ export async function getSessionContext() {
       subscription: null as Subscription | null
     };
   }
-
-  const appUser = await ensureAppUser(user);
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return {
-    supabase,
-    authUser: user,
-    appUser,
-      subscription: (subscription as Subscription | null) ?? null
-  };
 }
 
 export async function requireUser() {

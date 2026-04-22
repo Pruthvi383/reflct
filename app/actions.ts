@@ -1,11 +1,17 @@
 "use server";
 
 import { addMonths, addYears } from "date-fns";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdmin, requireSubscriber, requireUser } from "@/lib/auth";
 import { simulateDraw } from "@/lib/draw";
+import {
+  createEmergencyAdminCookieValue,
+  EMERGENCY_ADMIN_COOKIE,
+  matchesEmergencyAdminCredentials
+} from "@/lib/emergency-admin";
 import { sendDrawPublishedEmail, sendWinnerAlertEmail } from "@/lib/email";
 import { DEFAULT_CHARITY_PERCENTAGE } from "@/lib/constants";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -44,6 +50,18 @@ export async function signInAction(formData: FormData) {
 
   if (!parsed.success) {
     redirect("/auth/signin?error=invalid_credentials");
+  }
+
+  if (matchesEmergencyAdminCredentials(parsed.data.email, parsed.data.password)) {
+    const cookieStore = await cookies();
+    cookieStore.set(EMERGENCY_ADMIN_COOKIE, createEmergencyAdminCookieValue(parsed.data.email), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30
+    });
+    redirect("/admin");
   }
 
   const supabase = await createClient();
@@ -103,8 +121,16 @@ export async function signUpAction(formData: FormData) {
 }
 
 export async function signOutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  const cookieStore = await cookies();
+  cookieStore.delete(EMERGENCY_ADMIN_COOKIE);
+
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Fall back to cookie-only logout when Supabase is unavailable.
+  }
+
   redirect("/");
 }
 

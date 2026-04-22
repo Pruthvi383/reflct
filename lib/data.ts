@@ -68,51 +68,62 @@ export async function getSubscriberSnapshot(userId: string): Promise<SubscriberS
 }
 
 export async function getAdminSnapshot(): Promise<AdminSnapshot> {
-  const admin = createAdminClient();
-  const start = startOfMonth(new Date());
-  const previousMonth = subMonths(start, 1).toISOString();
+  try {
+    const admin = createAdminClient();
+    const start = startOfMonth(new Date());
+    const previousMonth = subMonths(start, 1).toISOString();
 
-  const [
-    { count: totalUsers },
-    { count: activeSubscribers },
-    { data: subscriptions },
-    { count: publishedDraws },
-    { count: pendingWinnerReviews },
-    { data: donations },
-    { data: latestDraws }
-  ] = await Promise.all([
-    admin.from("users").select("*", { count: "exact", head: true }),
-    admin
-      .from("subscriptions")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["active", "trialing"]),
-    admin.from("subscriptions").select("plan, amount").in("status", ["active", "trialing"]),
-    admin.from("draws").select("*", { count: "exact", head: true }).eq("status", "published"),
-    admin
-      .from("winners")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending_verification"),
-    admin.from("donations").select("amount"),
-    admin.from("draws").select("pool_amount, draw_month").gte("draw_month", previousMonth)
-  ]);
+    const [
+      { count: totalUsers },
+      { count: activeSubscribers },
+      { data: subscriptions },
+      { count: publishedDraws },
+      { count: pendingWinnerReviews },
+      { data: donations },
+      { data: latestDraws }
+    ] = await Promise.all([
+      admin.from("users").select("*", { count: "exact", head: true }),
+      admin
+        .from("subscriptions")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["active", "trialing"]),
+      admin.from("subscriptions").select("plan, amount").in("status", ["active", "trialing"]),
+      admin.from("draws").select("*", { count: "exact", head: true }).eq("status", "published"),
+      admin
+        .from("winners")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending_verification"),
+      admin.from("donations").select("amount"),
+      admin.from("draws").select("pool_amount, draw_month").gte("draw_month", previousMonth)
+    ]);
 
-  const totalPrizePool = (((latestDraws as Draw[] | null) ?? [])).reduce(
-    (sum, item) => sum + Number(item.pool_amount ?? 0),
-    0
-  );
-  const totalCharityCommitted =
-    (((subscriptions as Pick<Subscription, "plan" | "amount">[] | null) ?? [])).reduce(
-      (sum, item) => sum + getBaseMonthlyAmount(item.plan, Number(item.amount ?? 0)) * 0.1,
+    const totalPrizePool = (((latestDraws as Draw[] | null) ?? [])).reduce(
+      (sum, item) => sum + Number(item.pool_amount ?? 0),
       0
-    ) +
-    (((donations as Array<{ amount: number }> | null) ?? [])).reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+    );
+    const totalCharityCommitted =
+      (((subscriptions as Pick<Subscription, "plan" | "amount">[] | null) ?? [])).reduce(
+        (sum, item) => sum + getBaseMonthlyAmount(item.plan, Number(item.amount ?? 0)) * 0.1,
+        0
+      ) +
+      (((donations as Array<{ amount: number }> | null) ?? [])).reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 
-  return {
-    totalUsers: totalUsers ?? 0,
-    activeSubscribers: activeSubscribers ?? 0,
-    totalPrizePool,
-    totalCharityCommitted,
-    publishedDraws: publishedDraws ?? 0,
-    pendingWinnerReviews: pendingWinnerReviews ?? 0
-  };
+    return {
+      totalUsers: totalUsers ?? 0,
+      activeSubscribers: activeSubscribers ?? 0,
+      totalPrizePool,
+      totalCharityCommitted,
+      publishedDraws: publishedDraws ?? 0,
+      pendingWinnerReviews: pendingWinnerReviews ?? 0
+    };
+  } catch {
+    return {
+      totalUsers: 0,
+      activeSubscribers: 0,
+      totalPrizePool: 0,
+      totalCharityCommitted: 0,
+      publishedDraws: 0,
+      pendingWinnerReviews: 0
+    };
+  }
 }
