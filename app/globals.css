@@ -3,37 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --background: 42 33% 96%;
-  --foreground: 228 18% 12%;
-  --muted: 38 20% 90%;
-  --muted-foreground: 228 10% 40%;
-  --card: 42 29% 98%;
-  --card-foreground: 228 18% 12%;
-  --accent: 42 52% 54%;
-  --accent-foreground: 240 12% 8%;
-  --success: 144 22% 56%;
-  --warning: 42 52% 54%;
-  --font-geist: "Geist", "SF Pro Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-lora: "Lora", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  color-scheme: dark;
-}
-
-.dark {
-  --background: 240 18% 5%;
-  --foreground: 60 13% 96%;
-  --muted: 232 20% 13%;
-  --muted-foreground: 38 12% 70%;
-  --card: 232 22% 11%;
-  --card-foreground: 60 13% 96%;
-  --accent: 42 52% 54%;
-  --accent-foreground: 240 12% 8%;
-  --success: 144 22% 56%;
-  --warning: 42 52% 54%;
-  color-scheme: dark;
+  --background: 34 56% 97%;
+  --foreground: 206 39% 12%;
+  --muted: 32 42% 91%;
+  --muted-foreground: 207 14% 38%;
+  --card: 0 0% 100%;
+  --card-foreground: 206 39% 12%;
+  --accent: 18 91% 56%;
+  --accent-foreground: 24 100% 98%;
+  --secondary: 185 48% 24%;
+  --secondary-foreground: 183 44% 93%;
+  --border: 27 30% 84%;
+  --success: 151 42% 38%;
+  --warning: 37 92% 54%;
+  --danger: 3 74% 59%;
+  --font-sans: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
 
 * {
-  @apply border-transparent;
+  @apply border-border;
 }
 
 html {
@@ -42,14 +31,15 @@ html {
 
 body {
   @apply min-h-screen bg-background text-foreground antialiased;
-  font-family: var(--font-geist);
+  font-family: var(--font-sans), system-ui, sans-serif;
   background-image:
-    radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%);
+    radial-gradient(circle at top left, rgba(244, 101, 36, 0.18), transparent 26%),
+    radial-gradient(circle at top right, rgba(22, 102, 112, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(251, 245, 238, 0.9));
 }
 
 ::selection {
-  background: rgba(201, 168, 76, 0.22);
+  background: rgba(244, 101, 36, 0.22);
 }
 
 @layer base {
@@ -68,15 +58,11 @@ body {
 
 @layer utilities {
   .glass {
-    @apply border border-white/5 bg-white/5 shadow-soft backdrop-blur-xl;
-  }
-
-  .glass-light {
-    @apply border border-black/5 bg-white/70 shadow-soft backdrop-blur-xl;
+    @apply border bg-white/70 shadow-soft backdrop-blur-xl;
   }
 
   .surface {
-    @apply rounded-3xl bg-card/80 shadow-soft backdrop-blur-xl;
+    @apply rounded-3xl bg-card/85 shadow-soft backdrop-blur-xl;
   }
 
   .text-balance {
@@ -94,6 +80,20 @@ body {
   }
 
   .serif {
-    font-family: var(--font-lora), serif;
+    font-family: var(--font-serif), Georgia, serif;
+  }
+
+  .eyebrow {
+    @apply text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground;
+  }
+
+  .mesh-panel {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 244, 237, 0.85)),
+      radial-gradient(circle at top left, rgba(244, 101, 36, 0.16), transparent 34%);
+  }
+
+  .brand-gradient {
+    background-image: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--secondary)));
   }
 }

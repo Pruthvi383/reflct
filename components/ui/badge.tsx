@@ -2,14 +2,15 @@ import { cn } from "@/lib/utils";
 
 type BadgeProps = {
   children: React.ReactNode;
-  variant?: "amber" | "green" | "muted";
+  variant?: "amber" | "green" | "muted" | "danger";
   className?: string;
 };
 
 const variants = {
-  amber: "bg-accent/14 text-accent",
-  green: "bg-emerald-400/10 text-emerald-300",
-  muted: "bg-white/8 text-muted-foreground"
+  amber: "bg-accent/12 text-accent",
+  green: "bg-emerald-500/12 text-emerald-700",
+  muted: "bg-foreground/5 text-muted-foreground",
+  danger: "bg-rose-500/12 text-rose-700"
 };
 
 export function Badge({ children, variant = "muted", className }: BadgeProps) {

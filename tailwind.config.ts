@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -19,12 +18,16 @@ const config: Config = {
         "card-foreground": "hsl(var(--card-foreground))",
         accent: "hsl(var(--accent))",
         "accent-foreground": "hsl(var(--accent-foreground))",
+        secondary: "hsl(var(--secondary))",
+        "secondary-foreground": "hsl(var(--secondary-foreground))",
+        border: "hsl(var(--border))",
         success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))"
+        warning: "hsl(var(--warning))",
+        danger: "hsl(var(--danger))"
       },
       boxShadow: {
-        soft: "0 24px 80px rgba(0, 0, 0, 0.24)",
-        glow: "0 16px 48px rgba(201, 168, 76, 0.18)"
+        soft: "0 24px 80px rgba(5, 12, 18, 0.16)",
+        glow: "0 18px 60px rgba(244, 101, 36, 0.24)"
       },
       borderRadius: {
         "4xl": "2rem"
@@ -36,6 +39,10 @@ const config: Config = {
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-10px)" }
+        },
+        reveal: {
+          "0%": { opacity: "0", transform: "translateY(18px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
         },
         pulseRing: {
           "0%": { transform: "scale(0.96)", opacity: "0.6" },
@@ -49,6 +56,7 @@ const config: Config = {
       },
       animation: {
         float: "float 6s ease-in-out infinite",
+        reveal: "reveal 0.7s ease-out both",
         "pulse-ring": "pulseRing 2.4s ease-out infinite",
         shimmer: "shimmer 2.5s linear infinite"
       }

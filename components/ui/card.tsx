@@ -4,7 +4,13 @@ import { cn } from "@/lib/utils";
 
 export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
-    return <div ref={ref} className={cn("glass rounded-[28px] p-6", className)} {...props} />;
+    return (
+      <div
+        ref={ref}
+        className={cn("glass rounded-[28px] border border-white/60 p-6", className)}
+        {...props}
+      />
+    );
   }
 );
 

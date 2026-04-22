@@ -2,94 +2,114 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/types/database";
+import { PLAN_CONFIG } from "@/lib/constants";
+import type { AppUser, Subscription, SubscriptionStatus } from "@/types/app";
 
-function getProfileSeed(user: User) {
-  const metadata = user.user_metadata ?? {};
-  const metadataUsername =
-    typeof metadata.username === "string" && metadata.username.length > 0 ? metadata.username : null;
-  const fallback = `user_${user.id.replaceAll("-", "").slice(0, 12)}`;
+const ACTIVE_SUBSCRIPTION_STATES = new Set<SubscriptionStatus>(["active", "trialing"]);
 
-  return {
-    id: user.id,
-    name:
-      (typeof metadata.full_name === "string" && metadata.full_name) ||
-      (typeof metadata.name === "string" && metadata.name) ||
-      null,
-    image: typeof metadata.avatar_url === "string" ? metadata.avatar_url : null,
-    username: (metadataUsername ?? fallback).toLowerCase()
-  };
+function resolveRoleForEmail(email: string | undefined) {
+  if (!email) return "subscriber";
+
+  const admins = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return admins.includes(email.toLowerCase()) ? "admin" : "subscriber";
 }
 
-async function ensureProfile(user: User): Promise<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  profile: Profile;
-}> {
-  const supabase = await createClient();
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (existingProfile) {
-    return { supabase, profile: existingProfile };
-  }
-
-  const seed = getProfileSeed(user);
+async function ensureAppUser(user: User): Promise<AppUser> {
   const admin = createAdminClient();
+  const seed = {
+    id: user.id,
+    email: user.email ?? "",
+    full_name:
+      (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name) ||
+      (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
+      null,
+    role: resolveRoleForEmail(user.email)
+  } as const;
 
-  const { data: insertedProfile, error } = await admin
-    .from("profiles")
-    .upsert(seed as never, { onConflict: "id" })
-    .select("*")
-    .single();
+  const { data, error } = await admin.from("users").upsert(seed).select("*").single();
 
-  if (error || !insertedProfile) {
-    throw new Error(error?.message ?? "Unable to ensure profile");
+  if (error || !data) {
+    throw new Error(error?.message ?? "Unable to sync application user.");
   }
 
-  return { supabase, profile: insertedProfile as Profile };
+  return data as AppUser;
 }
 
-export async function getSession() {
+export async function getSessionContext() {
   const supabase = await createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  return { supabase, user };
+  if (!user) {
+    return {
+      supabase,
+      authUser: null,
+      appUser: null,
+      subscription: null as Subscription | null
+    };
+  }
+
+  const appUser = await ensureAppUser(user);
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return {
+    supabase,
+    authUser: user,
+    appUser,
+      subscription: (subscription as Subscription | null) ?? null
+  };
 }
 
 export async function requireUser() {
-  const { supabase, user } = await getSession();
+  const context = await getSessionContext();
 
-  if (!user) {
+  if (!context.authUser || !context.appUser) {
     redirect("/auth/signin");
   }
 
-  const ensured = await ensureProfile(user);
-
-  return { supabase: ensured.supabase ?? supabase, user, profile: ensured.profile };
+  return context as typeof context & {
+    authUser: User;
+    appUser: AppUser;
+  };
 }
 
-export async function requireCompletedProfile() {
-  const { profile, user, supabase } = await requireUser();
+export async function requireSubscriber() {
+  const context = await requireUser();
 
-  if (!profile?.username || !profile.learning_goal) {
-    redirect("/onboarding");
+  if (context.appUser.role === "admin") {
+    return context;
   }
 
-  return { supabase, user, profile };
+  if (!context.subscription || !ACTIVE_SUBSCRIPTION_STATES.has(context.subscription.status)) {
+    redirect("/subscribe");
+  }
+
+  return context;
 }
 
-export async function getRedirectPathForSession() {
-  const { user } = await getSession();
+export async function requireAdmin() {
+  const context = await requireUser();
 
-  if (!user) {
-    return null;
+  if (context.appUser.role !== "admin") {
+    redirect("/dashboard");
   }
 
-  const { profile } = await requireUser();
-  return profile?.learning_goal && profile.username ? "/dashboard" : "/onboarding";
+  return context;
+}
+
+export function hasActiveSubscription(subscription: Subscription | null) {
+  return Boolean(subscription && ACTIVE_SUBSCRIPTION_STATES.has(subscription.status));
+}
+
+export function getPlanAmount(plan: "monthly" | "yearly") {
+  return PLAN_CONFIG[plan].amount;
 }

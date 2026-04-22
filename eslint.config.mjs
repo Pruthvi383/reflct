@@ -7,6 +7,7 @@ export default defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    ".next.backup-next15/**",
     "out/**",
     "build/**",
     "next-env.d.ts"

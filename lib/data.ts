@@ -1,103 +1,118 @@
-import { formatISO } from "date-fns";
+import { startOfMonth, subMonths } from "date-fns";
 
-import { getCurrentWeekStart, getWeekWindow, hasMissedLastWeek } from "@/lib/date";
-import type { DashboardSnapshot, EntryStatus } from "@/types/app";
-import type { Entry, FocusSession, Profile } from "@/types/database";
-import type { Database } from "@/types/database";
+import { getBaseMonthlyAmount } from "@/lib/utils";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import type {
+  AdminSnapshot,
+  Charity,
+  Draw,
+  Subscription,
+  SubscriberSnapshot,
+  UserCharity,
+  Winner
+} from "@/types/app";
+import type { AppUser, Score } from "@/types/app";
 
-type SupabaseClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
+export async function getFeaturedCharities(): Promise<Charity[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("charities").select("*").order("featured", { ascending: false }).limit(3);
+  return ((data as Charity[] | null) ?? []);
+}
 
-export async function getDashboardSnapshot(
-  supabase: SupabaseClient,
-  profile: Profile
-): Promise<DashboardSnapshot> {
-  const weekStart = formatISO(getCurrentWeekStart(), { representation: "date" });
-  const weekWindow = getWeekWindow();
+export async function getCharityDirectory(search?: string): Promise<Charity[]> {
+  const supabase = await createClient();
+  let query = supabase.from("charities").select("*").order("featured", { ascending: false }).order("name");
 
-  const [currentEntryResult, recentEntriesResult, currentWeekSessionsResult] = await Promise.all([
-    supabase
-      .from("entries")
-      .select("*")
-      .eq("user_id", profile.id)
-      .eq("week_start", weekStart)
-      .maybeSingle(),
-    supabase
-      .from("entries")
-      .select("*")
-      .eq("user_id", profile.id)
-      .order("week_start", { ascending: false })
-      .limit(4),
-    supabase
-      .from("focus_sessions")
-      .select("*")
-      .eq("user_id", profile.id)
-      .gte("started_at", weekWindow.start.toISOString())
-      .lte("started_at", weekWindow.end.toISOString())
-      .order("started_at", { ascending: false })
-  ]);
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,location.ilike.%${search}%`);
+  }
 
-  const currentEntry = (currentEntryResult.data ?? null) as Entry | null;
-  const recentEntries = (recentEntriesResult.data ?? []) as Entry[];
-  const currentWeekSessions = (currentWeekSessionsResult.data ?? []) as FocusSession[];
+  const { data } = await query;
+  return ((data as Charity[] | null) ?? []);
+}
 
-  const lastGoal = recentEntries[0]?.next_goal ?? null;
-  const hasHistory = recentEntries.length > 0;
-  const missed = hasHistory ? hasMissedLastWeek(profile.last_entry_date) : false;
-  const entryStatus: EntryStatus = currentEntry?.is_locked ? "DONE" : missed ? "MISSED" : "PENDING";
+export async function getSubscriberSnapshot(userId: string): Promise<SubscriberSnapshot | null> {
+  const supabase = await createClient();
+  const [{ data: user }, { data: subscription }, { data: scores }, { data: selection }, { data: draws }, { data: winnings }] =
+    await Promise.all([
+      supabase.from("users").select("*").eq("id", userId).single(),
+      supabase.from("subscriptions").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("scores").select("*").eq("user_id", userId).order("played_at", { ascending: false }),
+      supabase
+        .from("user_charity")
+        .select("*, charity:charities(*)")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("draws")
+        .select("*")
+        .order("draw_month", { ascending: false })
+        .limit(6),
+      supabase
+        .from("winners")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+    ]);
+
+  if (!user) return null;
 
   return {
-    profile,
-    currentEntry,
-    recentEntries,
-    currentWeekSessions,
-    lastGoal,
-    entryStatus
+    user: user as AppUser,
+    subscription: (subscription as Subscription | null) ?? null,
+    scores: (scores as Score[] | null) ?? [],
+    selectedCharity: (selection as (UserCharity & { charity: Charity | null }) | null) ?? null,
+    recentDraws: (draws as Draw[] | null) ?? [],
+    winnings: (winnings as Winner[] | null) ?? []
   };
 }
 
-export async function ensureMonthlyFreezeReset(
-  supabase: SupabaseClient,
-  profile: Profile
-) {
-  const now = new Date();
-  if (now.getDate() !== 1) return profile;
+export async function getAdminSnapshot(): Promise<AdminSnapshot> {
+  const admin = createAdminClient();
+  const start = startOfMonth(new Date());
+  const previousMonth = subMonths(start, 1).toISOString();
 
-  if (profile.streak_freezes === 1) return profile;
+  const [
+    { count: totalUsers },
+    { count: activeSubscribers },
+    { data: subscriptions },
+    { count: publishedDraws },
+    { count: pendingWinnerReviews },
+    { data: donations },
+    { data: latestDraws }
+  ] = await Promise.all([
+    admin.from("users").select("*", { count: "exact", head: true }),
+    admin
+      .from("subscriptions")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["active", "trialing"]),
+    admin.from("subscriptions").select("plan, amount").in("status", ["active", "trialing"]),
+    admin.from("draws").select("*", { count: "exact", head: true }).eq("status", "published"),
+    admin
+      .from("winners")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending_verification"),
+    admin.from("donations").select("amount"),
+    admin.from("draws").select("pool_amount, draw_month").gte("draw_month", previousMonth)
+  ]);
 
-  const { data } = await supabase
-    .from("profiles")
-    .update({ streak_freezes: 1 } as never)
-    .eq("id", profile.id)
-    .select("*")
-    .single();
+  const totalPrizePool = (((latestDraws as Draw[] | null) ?? [])).reduce(
+    (sum, item) => sum + Number(item.pool_amount ?? 0),
+    0
+  );
+  const totalCharityCommitted =
+    (((subscriptions as Pick<Subscription, "plan" | "amount">[] | null) ?? [])).reduce(
+      (sum, item) => sum + getBaseMonthlyAmount(item.plan, Number(item.amount ?? 0)) * 0.1,
+      0
+    ) +
+    (((donations as Array<{ amount: number }> | null) ?? [])).reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 
-  return data ?? profile;
-}
-
-export async function applyDashboardStreakGuard(
-  supabase: SupabaseClient,
-  profile: Profile
-) {
-  const today = new Date();
-  if (today.getDay() !== 1 || !hasMissedLastWeek(profile.last_entry_date, today)) {
-    return profile;
-  }
-
-  const nextValues =
-    (profile.streak_freezes ?? 0) > 0
-      ? {
-          streak_freezes: Math.max((profile.streak_freezes ?? 1) - 1, 0)
-        }
-      : {
-          streak_count: 0
-        };
-
-  const { data } = await supabase
-    .from("profiles")
-    .update((nextValues satisfies Database["public"]["Tables"]["profiles"]["Update"]) as never)
-    .eq("id", profile.id)
-    .select("*")
-    .single();
-
-  return data ?? profile;
+  return {
+    totalUsers: totalUsers ?? 0,
+    activeSubscribers: activeSubscribers ?? 0,
+    totalPrizePool,
+    totalCharityCommitted,
+    publishedDraws: publishedDraws ?? 0,
+    pendingWinnerReviews: pendingWinnerReviews ?? 0
+  };
 }

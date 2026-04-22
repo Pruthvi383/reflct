@@ -1,47 +1,86 @@
 import {
-  CalendarRange,
-  Clock3,
-  Home,
-  Settings,
-  Sparkles,
-  UserRound
+  Gift,
+  HeartHandshake,
+  LayoutDashboard,
+  ShieldCheck,
+  Target,
+  Trophy
 } from "lucide-react";
 
-export const APP_NAME = "Reflct";
+export const APP_NAME = "Birdie for Good";
+export const APP_TAGLINE = "Golf scores that turn monthly giving into real-world impact.";
 
-export const SIDEBAR_ITEMS = [
+export const SUBSCRIBER_NAV_ITEMS = [
   {
     href: "/dashboard",
-    label: "Dashboard",
-    icon: Home
+    label: "Overview",
+    icon: LayoutDashboard
   },
   {
-    href: "/timer",
-    label: "Timer",
-    icon: Clock3
+    href: "/dashboard/scores",
+    label: "Scores",
+    icon: Target
   },
   {
-    href: "/history",
-    label: "History",
-    icon: CalendarRange
+    href: "/dashboard/charity",
+    label: "Charity",
+    icon: HeartHandshake
   },
   {
-    href: "/wrapped",
-    label: "Wrapped",
-    icon: Sparkles
+    href: "/dashboard/draws",
+    label: "Draws",
+    icon: Gift
   },
   {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings
-  },
-  {
-    href: "/profile/me",
-    label: "Profile",
-    icon: UserRound
+    href: "/dashboard/winnings",
+    label: "Winnings",
+    icon: Trophy
   }
 ] as const;
 
-export const TIMER_PRESETS = [25, 45, 60] as const;
+export const ADMIN_NAV_ITEMS = [
+  {
+    href: "/admin",
+    label: "Overview",
+    icon: ShieldCheck
+  },
+  {
+    href: "/admin/users",
+    label: "Users",
+    icon: LayoutDashboard
+  },
+  {
+    href: "/admin/charities",
+    label: "Charities",
+    icon: HeartHandshake
+  },
+  {
+    href: "/admin/draws",
+    label: "Draws",
+    icon: Gift
+  },
+  {
+    href: "/admin/winners",
+    label: "Winners",
+    icon: Trophy
+  }
+] as const;
 
-export const ENTRY_AUTOSAVE_INTERVAL_MS = 30_000;
+export const PLAN_CONFIG = {
+  monthly: {
+    label: "Monthly",
+    amount: 24,
+    cadence: "month"
+  },
+  yearly: {
+    label: "Yearly",
+    amount: 240,
+    cadence: "year"
+  }
+} as const;
+
+export const SCORE_MIN = 1;
+export const SCORE_MAX = 45;
+export const SCORE_LIMIT = 5;
+export const DEFAULT_CHARITY_PERCENTAGE = 10;
+export const MATCH_TYPES = ["match_5", "match_4", "match_3"] as const;

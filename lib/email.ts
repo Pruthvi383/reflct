@@ -1,31 +1,31 @@
-import { format } from "date-fns";
 import { Resend } from "resend";
 
-import { absoluteUrl } from "@/lib/utils";
+import { APP_NAME } from "@/lib/constants";
+import { absoluteUrl, formatCurrency, formatMonth } from "@/lib/utils";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const from = "Reflct <hello@reflct.app>";
+const from = process.env.RESEND_FROM_EMAIL ?? `${APP_NAME} <updates@example.com>`;
 
 function shell({
-  title,
   eyebrow,
+  title,
   body,
   ctaLabel,
   ctaHref
 }: {
-  title: string;
   eyebrow: string;
+  title: string;
   body: string;
   ctaLabel: string;
   ctaHref: string;
 }) {
   return `
-    <div style="background:#0a0a0f;padding:32px;font-family:Geist,system-ui,sans-serif;color:#f8f8f2;">
-      <div style="max-width:560px;margin:0 auto;background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);border-radius:28px;padding:32px;">
-        <p style="text-transform:uppercase;letter-spacing:0.28em;font-size:11px;color:#b6ad97;margin:0 0 16px;">${eyebrow}</p>
-        <h1 style="font-family:Lora, Georgia, serif;font-size:40px;line-height:1.1;margin:0 0 18px;">${title}</h1>
-        <p style="font-size:16px;line-height:1.8;color:#ddd7c5;margin:0 0 28px;">${body}</p>
-        <a href="${ctaHref}" style="display:inline-block;background:#c9a84c;color:#0a0a0f;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:600;">
+    <div style="background:#f8f0e8;padding:32px;font-family:Space Grotesk,system-ui,sans-serif;color:#11212d;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:28px;padding:32px;border:1px solid rgba(17,33,45,0.08);">
+        <p style="text-transform:uppercase;letter-spacing:0.24em;font-size:11px;color:#5f707d;margin:0 0 14px;">${eyebrow}</p>
+        <h1 style="font-family:Fraunces,Georgia,serif;font-size:38px;line-height:1.1;margin:0 0 16px;">${title}</h1>
+        <p style="font-size:16px;line-height:1.75;color:#32424d;margin:0 0 28px;">${body}</p>
+        <a href="${ctaHref}" style="display:inline-block;background:#f46524;color:#fff7f2;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:600;">
           ${ctaLabel}
         </a>
       </div>
@@ -33,72 +33,85 @@ function shell({
   `;
 }
 
-export async function sendFridayReminderEmail({
-  email,
-  lastGoal
+async function sendEmail({
+  to,
+  subject,
+  html
 }: {
-  email: string;
-  lastGoal: string | null;
+  to: string;
+  subject: string;
+  html: string;
 }) {
   if (!resend) return;
+
   await resend.emails.send({
     from,
+    to,
+    subject,
+    html
+  });
+}
+
+export async function sendDrawPublishedEmail({
+  email,
+  drawMonth
+}: {
+  email: string;
+  drawMonth: string;
+}) {
+  await sendEmail({
     to: email,
-    subject: "Your Friday reflection is open",
+    subject: `${APP_NAME}: ${formatMonth(drawMonth)} results are live`,
     html: shell({
-      eyebrow: "Friday reminder",
-      title: "Your weekly reflection is ready.",
-      body: `Last week you wanted to: "${lastGoal ?? "Set one clear goal."}" Take four calm minutes and close the loop.`,
-      ctaLabel: "Open entry",
-      ctaHref: absoluteUrl("/entry")
+      eyebrow: "Draw results",
+      title: "This month's draw has been published.",
+      body: "Log in to see the winning numbers, your participation summary, and the latest charity impact totals.",
+      ctaLabel: "Open dashboard",
+      ctaHref: absoluteUrl("/dashboard/draws")
     })
   });
 }
 
-export async function sendSundayLastChanceEmail({
+export async function sendWinnerAlertEmail({
   email,
-  streakCount
+  amount,
+  drawMonth
 }: {
   email: string;
-  streakCount: number;
+  amount: number;
+  drawMonth: string;
 }) {
-  if (!resend) return;
-  await resend.emails.send({
-    from,
+  await sendEmail({
     to: email,
-    subject: "A gentle nudge before the week closes",
+    subject: `${APP_NAME}: you have a verified win pending`,
     html: shell({
-      eyebrow: "Sunday last chance",
-      title: "Your week is still waiting for a closing note.",
-      body: `You’re carrying a ${streakCount}-week reflection streak. If this week mattered, give it one calm paragraph before Sunday night.`,
-      ctaLabel: "Finish this week",
-      ctaHref: absoluteUrl("/entry")
+      eyebrow: "Winner alert",
+      title: `You're provisionally owed ${formatCurrency(amount)}.`,
+      body: `Your scores matched a prize tier in the ${formatMonth(drawMonth)} draw. Upload your proof so the team can review and release payment.`,
+      ctaLabel: "Upload proof",
+      ctaHref: absoluteUrl("/dashboard/winnings")
     })
   });
 }
 
-export async function sendMonthlyWrappedReadyEmail({
+export async function sendSystemUpdateEmail({
   email,
-  month,
-  year,
-  topTheme
+  title,
+  message
 }: {
   email: string;
-  month: number;
-  year: number;
-  topTheme: string;
+  title: string;
+  message: string;
 }) {
-  if (!resend) return;
-  await resend.emails.send({
-    from,
+  await sendEmail({
     to: email,
-    subject: `${format(new Date(year, month - 1, 1), "MMMM")} Wrapped is ready`,
+    subject: `${APP_NAME}: ${title}`,
     html: shell({
-      eyebrow: "Monthly Wrapped",
-      title: "Your month has a shape now.",
-      body: `One theme rose above the rest: ${topTheme}. Your Wrapped is ready with focus trends, goals, and the week that stood out most.`,
-      ctaLabel: "Open Wrapped",
-      ctaHref: absoluteUrl(`/wrapped/${year}-${String(month).padStart(2, "0")}`)
+      eyebrow: "Platform update",
+      title,
+      body: message,
+      ctaLabel: "Open platform",
+      ctaHref: absoluteUrl("/dashboard")
     })
   });
 }

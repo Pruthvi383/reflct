@@ -1,69 +1,47 @@
 import { z } from "zod";
 
+import { DEFAULT_CHARITY_PERCENTAGE, SCORE_MAX, SCORE_MIN } from "@/lib/constants";
+
 export const authSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Use at least 8 characters")
+  fullName: z.string().min(2).max(80),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+  charityId: z.string().uuid(),
+  contributionPercentage: z.coerce.number().min(DEFAULT_CHARITY_PERCENTAGE).max(100)
 });
 
-export const signupSchema = authSchema.extend({
-  username: z
-    .string()
-    .min(3, "Use at least 3 characters")
-    .max(24, "Keep it under 24 characters")
-    .regex(/^[a-z0-9_]+$/i, "Use letters, numbers, and underscores")
+export const signInSchema = authSchema.pick({
+  email: true,
+  password: true
 });
 
-export const onboardingSchema = z.object({
-  learning_goal: z.string().min(2, "Share what you're learning"),
-  reminder_time: z.string().min(1, "Pick a reminder time"),
-  username: z
-    .string()
-    .min(3, "Choose a username")
-    .max(24, "Keep it under 24 characters")
-    .regex(/^[a-z0-9_]+$/i, "Use letters, numbers, and underscores")
+export const scoreSchema = z.object({
+  playedAt: z.string().min(1),
+  score: z.coerce.number().int().min(SCORE_MIN).max(SCORE_MAX)
 });
 
-const entryBaseSchema = z.object({
-  week_start: z.string(),
-  learnings: z.string(),
-  focus_rating: z.number().min(1).max(5).nullable(),
-  blocker: z.string().nullable(),
-  next_goal: z.string(),
-  prev_goal_met: z.boolean().nullable(),
-  is_locked: z.boolean().optional()
+export const charitySelectionSchema = z.object({
+  charityId: z.string().uuid(),
+  contributionPercentage: z.coerce.number().min(DEFAULT_CHARITY_PERCENTAGE).max(100)
 });
 
-export const entryDraftSchema = entryBaseSchema;
-
-export const entrySubmitSchema = entryBaseSchema.superRefine((value, ctx) => {
-  if (value.learnings.trim().length < 10) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["learnings"],
-      message: "Capture a little more detail before locking this week."
-    });
-  }
-
-  if (value.next_goal.trim().length < 2) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["next_goal"],
-      message: "Set one next goal before locking this week."
-    });
-  }
+export const donationSchema = z.object({
+  charityId: z.string().uuid(),
+  amount: z.coerce.number().positive().max(10000),
+  note: z.string().max(200).optional()
 });
 
-export const settingsSchema = z.object({
-  reminder_time: z.string().optional(),
-  is_public: z.boolean().optional(),
-  learning_goal: z.string().optional(),
-  username: z.string().optional()
+export const checkoutSchema = z.object({
+  plan: z.enum(["monthly", "yearly"])
 });
 
-export const focusSessionSchema = z.object({
-  label: z.string().min(2, "Add a session label"),
-  duration: z.number().min(1),
-  quality: z.enum(["PRODUCTIVE", "OKAY", "DISTRACTED"]),
-  started_at: z.string(),
-  ended_at: z.string()
+export const drawConfigSchema = z.object({
+  drawMonth: z.string().min(1),
+  logicType: z.enum(["random", "algorithmic"]),
+  notes: z.string().max(500).optional()
+});
+
+export const winnerReviewSchema = z.object({
+  winnerId: z.string().uuid(),
+  status: z.enum(["pending_verification", "approved", "rejected", "paid"])
 });

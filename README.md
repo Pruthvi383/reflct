@@ -1,23 +1,77 @@
-# Reflct
+# Birdie for Good
 
-Calm, premium productivity journaling built with Next.js 15, TypeScript, Tailwind CSS, Supabase, Framer Motion, Zustand, React Hook Form, Zod, Resend, and Gemini.
+Subscription-driven charity draw platform built with Next.js App Router, TypeScript, Tailwind CSS, Framer Motion, Supabase Auth/Postgres/Storage, Stripe subscriptions, and Resend email notifications.
 
-## Setup
+## What’s Included
 
-1. Copy `.env.example` to `.env.local` and fill in the Supabase, Gemini, Resend, and app URL values.
-2. Run the SQL in [supabase/schema.sql](/Users/pruthvipatil/Reflct/supabase/schema.sql) inside the Supabase SQL editor.
-3. Install dependencies with your preferred package manager.
-4. Start the app with `npm run dev`.
+- Emotion-led marketing homepage with featured charities and subscription CTA
+- Supabase schema with RLS, storage bucket policies, score/date uniqueness, and 5-score trimming trigger
+- Email/password auth with charity selection at signup
+- Subscription pricing flow with Stripe Checkout and webhook synchronization
+- Protected subscriber dashboard modules for scores, charity settings, draws, and winnings
+- Admin control surface for users, charities, draws, winners, and high-level analytics
+- Seed data for prize pool configuration and starter charities
 
-## Included product areas
+## Environment
 
-- Landing page, auth, OAuth callback, and onboarding flow
-- Protected dashboard, timer, entry, history, wrapped, and settings areas
-- Public profile pages and public Wrapped sharing via `?user=<username>`
-- Supabase SSR clients, middleware session refresh, typed database models, and route handlers
-- Gemini monthly wrapped generation and Resend email helpers
+Copy `.env.example` to `.env.local` and set:
 
-## Notes
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_JWT_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_MONTHLY_PRICE_ID`
+- `STRIPE_YEARLY_PRICE_ID`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `NEXT_PUBLIC_APP_URL`
+- `ADMIN_EMAILS`
 
-- The supplied profile schema required a non-null `username`, so the included SQL trigger seeds a placeholder username for OAuth users and lets onboarding replace it later.
-- I could not run `npm`, `next build`, or `tsc` here because Node.js/package managers are unavailable in this environment.
+## Supabase Setup
+
+1. Create a new Supabase project.
+2. Run [supabase/schema.sql](/Users/pruthvipatil/Reflct/supabase/schema.sql).
+3. Run [supabase/seed.sql](/Users/pruthvipatil/Reflct/supabase/seed.sql).
+4. In Storage, confirm the `winner-proofs` bucket exists if your project policies block automatic creation.
+5. Set the Postgres setting `app.settings.admin_emails` if you want DB-triggered admin assignment to match `ADMIN_EMAILS`.
+
+## Local Commands
+
+This workspace ships with a local Node binary in `.tools`, so the validated commands are:
+
+```bash
+./.tools/node-v20.19.5-darwin-arm64/bin/node ./.tools/node-v20.19.5-darwin-arm64/lib/node_modules/npm/bin/npm-cli.js install
+./.tools/node-v20.19.5-darwin-arm64/bin/node ./node_modules/eslint/bin/eslint.js .
+./.tools/node-v20.19.5-darwin-arm64/bin/node ./node_modules/typescript/bin/tsc --noEmit
+./.tools/node-v20.19.5-darwin-arm64/bin/node ./node_modules/next/dist/bin/next build --webpack
+```
+
+For normal development once Node is on your shell path:
+
+```bash
+npm install
+npm run dev
+```
+
+## Stripe Notes
+
+- `app/actions.ts` creates hosted Stripe Checkout sessions for monthly/yearly plans.
+- `app/api/stripe/webhook/route.ts` syncs subscription state from Stripe back into Supabase.
+- If Stripe keys are absent, checkout falls back to a local development subscription record so the protected app can still be exercised.
+
+## Verification
+
+The current codebase passes:
+
+- ESLint
+- TypeScript `--noEmit`
+- `next build --webpack`
+
+## Deployment
+
+Deploy to a new Vercel project and set the same environment variables there. Point Stripe webhook events to:
+
+- `/api/stripe/webhook`
