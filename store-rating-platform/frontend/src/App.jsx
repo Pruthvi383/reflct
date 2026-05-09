@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/layout/Navbar";
 import { PrivateRoute } from "./components/layout/PrivateRoute";
 import Login from "./pages/Auth/Login";
@@ -18,7 +18,7 @@ export default function App() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<main className="panel narrow"><h1>403</h1><p>You do not have access to this page.</p></main>} />
@@ -31,6 +31,7 @@ export default function App() {
         <Route path="/admin/stores/new" element={<PrivateRoute roles={["admin"]}><AddStore /></PrivateRoute>} />
         <Route path="/stores" element={<PrivateRoute roles={["user"]}><UserStoreList /></PrivateRoute>} />
         <Route path="/owner/dashboard" element={<PrivateRoute roles={["store_owner"]}><OwnerDashboard /></PrivateRoute>} />
+        <Route path="*" element={<Login />} />
       </Routes>
     </>
   );

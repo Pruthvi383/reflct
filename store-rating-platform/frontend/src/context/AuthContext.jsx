@@ -6,8 +6,13 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
-    const raw = localStorage.getItem("store-rating-auth");
-    return raw ? JSON.parse(raw) : { token: null, user: null };
+    try {
+      const raw = localStorage.getItem("store-rating-auth");
+      return raw ? JSON.parse(raw) : { token: null, user: null };
+    } catch {
+      localStorage.removeItem("store-rating-auth");
+      return { token: null, user: null };
+    }
   });
 
   const logout = () => {
