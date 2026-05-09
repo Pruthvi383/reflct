@@ -12,7 +12,9 @@ async function ensureDb() {
 
 module.exports = async (req, res) => {
   try {
-    await ensureDb();
+    if (req.url.startsWith("/api")) {
+      await ensureDb();
+    }
     return app(req, res);
   } catch (error) {
     console.error("Database connection failed:", error.message);

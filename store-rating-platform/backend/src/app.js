@@ -15,6 +15,7 @@ app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*", credentials: true }));
 app.use(express.json());
 
+app.get("/", (req, res) => res.json({ ok: true, service: "store-rating-platform-api" }));
 app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
