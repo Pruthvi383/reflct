@@ -2,9 +2,7 @@ const { Sequelize, DataTypes } = require("sequelize");
 const pg = require("pg");
 require("dotenv").config();
 
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 5432),
+const commonOptions = {
   dialect: "postgres",
   dialectModule: pg,
   logging: false,
@@ -13,7 +11,18 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     createdAt: "created_at",
     updatedAt: false
   }
-});
+};
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+    ...commonOptions,
+    dialectOptions: { ssl: { require: true, rejectUnauthorized: false } }
+  })
+  : new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
+    ...commonOptions,
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT || 5432)
+  });
 
 const User = sequelize.define("User", {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
