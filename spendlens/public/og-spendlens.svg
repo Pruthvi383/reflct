@@ -1,0 +1,9 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#18212f"/>
+  <circle cx="930" cy="120" r="210" fill="#2563eb" fill-opacity="0.35"/>
+  <circle cx="180" cy="520" r="190" fill="#14b8a6" fill-opacity="0.25"/>
+  <text x="96" y="180" fill="#93c5fd" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="8">SPENDLENS</text>
+  <text x="96" y="295" fill="white" font-family="Arial, sans-serif" font-size="74" font-weight="700">Know if your AI stack</text>
+  <text x="96" y="385" fill="white" font-family="Arial, sans-serif" font-size="74" font-weight="700">is costing you</text>
+  <text x="96" y="480" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="32">Deterministic AI tool spend audits for startups.</text>
+</svg>

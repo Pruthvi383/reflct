@@ -3,11 +3,14 @@ export interface ToolEntry {
   plan: string;
   monthlySpend: number;
   seats: number;
+  useCase?: "individual" | "api" | "mixed";
+  billingCycle?: "monthly" | "annual";
 }
 
 export interface AuditInput {
   teamSize: number;
   tools: ToolEntry[];
+  startupCreditsUsed?: boolean;
 }
 
 export interface Finding {
@@ -23,4 +26,6 @@ export interface AuditResult {
   totalMonthlySavings: number;
   totalAnnualSavings: number;
   auditedAt: string;
+  tools: ToolEntry[];
+  teamSize: number;
 }
