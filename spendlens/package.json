@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test __tests__/*.test.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -26,6 +27,7 @@
     "eslint-config-next": "14.2.23",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

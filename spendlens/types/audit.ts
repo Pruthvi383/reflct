@@ -10,6 +10,17 @@ export interface AuditInput {
   tools: ToolEntry[];
 }
 
+export interface Finding {
+  ruleId: string;
+  severity: "high" | "medium" | "low";
+  toolId: string;
+  message: string;
+  monthlySavings: number;
+}
+
 export interface AuditResult {
-  // Filling this in once the engine has real output.
+  findings: Finding[];
+  totalMonthlySavings: number;
+  totalAnnualSavings: number;
+  auditedAt: string;
 }
